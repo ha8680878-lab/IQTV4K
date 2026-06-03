@@ -1,1285 +1,608 @@
-<!DOCTYPE html>
-<html lang="ar" dir="rtl">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title id="site-title-tag">IQTV 4K | الموزع المعتمد لباقات وريسيفرات IPTV في العراق</title>
-    
-    <!-- Tailwind CSS (via Play CDN) -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    
-    <!-- Google Fonts: Cairo -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
-    
-    <!-- FontAwesome Icons -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
-    
-    <!-- Netlify Identity Widget -->
-    <script src="https://identity.netlify.com/v1/netlify-identity-widget.js"></script>
+import React, { useState, useEffect } from 'react';
+import { StoreItem, StoreSettings, LogEntry } from './types';
+import { initialStoreItems, initialStoreSettings } from './data/defaultData';
+import DetailsModal from './components/DetailsModal';
+import CheckoutModal from './components/CheckoutModal';
+import SecurityAuthModal from './components/SecurityAuthModal';
+import AdminPanel from './components/AdminPanel';
+import { 
+  Tv, 
+  Search, 
+  SlidersHorizontal, 
+  Send, 
+  Terminal, 
+  ShieldCheck, 
+  CheckCircle2, 
+  Cpu, 
+  Gamepad2, 
+  Disc,
+  Play, 
+  Sparkles,
+  Smartphone,
+  Phone
+} from 'lucide-react';
 
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    fontFamily: {
-                        sans: ['Cairo', 'sans-serif'],
-                    },
-                    colors: {
-                        brand: {
-                            dark: '#0b0f19',
-                            slate: '#0d1321',
-                            blue: '#2563eb',
-                            emerald: '#10b981',
-                        }
-                    }
-                }
-            }
-        }
-    </script>
-    
-    <style>
-        body {
-            font-family: 'Cairo', sans-serif;
-            background-color: #0b0f19;
-            color: #f3f4f6;
-            scroll-behavior: smooth;
-        }
-        .tod-nav-link {
-            transition: all 0.3s ease;
-            position: relative;
-        }
-        .tod-nav-link::after {
-            content: '';
-            position: absolute;
-            bottom: -4px;
-            left: 0;
-            width: 0;
-            height: 2px;
-            background-color: #2563eb;
-            transition: width 0.3s ease;
-        }
-        .tod-nav-link:hover::after, .tod-nav-link.active::after {
-            width: 100%;
-        }
-        ::-webkit-scrollbar {
-            width: 6px;
-            height: 6px;
-        }
-        ::-webkit-scrollbar-track {
-            background: #0b0f19;
-        }
-        ::-webkit-scrollbar-thumb {
-            background: #1e293b;
-            border-radius: 10px;
-        }
-        ::-webkit-scrollbar-thumb:hover {
-            background: #334155;
-        }
-        .bg-space-grid {
-            background-image: 
-                radial-gradient(circle at 50% 50%, rgba(37, 99, 235, 0.05) 0%, transparent 80%),
-                linear-gradient(rgba(255, 255, 255, 0.003) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(255, 255, 255, 0.003) 1px, transparent 1px);
-            background-size: 100% 100%, 30px 30px, 30px 30px;
-        }
-    </style>
-</head>
-<body class="overflow-x-hidden antialiased bg-[#0b0f19] text-gray-100 bg-space-grid">
+export default function App() {
+  // Core Store States loaded from localStorage
+  const [items, setItems] = useState<StoreItem[]>(() => {
+    const saved = localStorage.getItem('iqtv_store_items');
+    return saved ? JSON.parse(saved) : initialStoreItems;
+  });
 
-    <!-- Toast system Notification -->
-    <div id="toast" class="fixed bottom-6 right-6 left-6 md:left-auto md:w-96 z-50 bg-gradient-to-r from-blue-700 to-blue-900 border border-blue-500/30 text-white rounded-2xl shadow-2xl p-4 flex items-center gap-3 transform translate-y-20 opacity-0 transition-all duration-300 pointer-events-none">
-        <div class="bg-blue-500/20 p-2 rounded-xl text-blue-300">
-            <i class="fas fa-sparkles animate-pulse"></i>
+  const [settings, setSettings] = useState<StoreSettings>(() => {
+    const saved = localStorage.getItem('iqtv_store_settings');
+    return saved ? JSON.parse(saved) : initialStoreSettings;
+  });
+
+  const [logs, setLogs] = useState<LogEntry[]>(() => {
+    const saved = localStorage.getItem('iqtv_security_logs');
+    if (saved) return JSON.parse(saved);
+    
+    // Core bootstrap logs for premium look
+    return [
+      {
+        id: 'log-1',
+        timestamp: new Date().toLocaleTimeString('ar-IQ'),
+        type: 'success',
+        message: 'تم تفعيل حماية النطاق وجدار التوثيق بنجاح لمالك المتجر.'
+      },
+      {
+        id: 'log-2',
+        timestamp: new Date().toLocaleTimeString('ar-IQ'),
+        type: 'info',
+        message: 'البريد الإلكتروني المعتد الوحيد للإشراف: ha8680878@gmail.com'
+      }
+    ];
+  });
+
+  // Client Navigation States
+  const [activeTab, setActiveTab] = useState<'store' | 'admin'>('store');
+  const [categoryFilter, setCategoryFilter] = useState<'all' | 'apps' | 'devices' | 'receivers' | 'tvbox'>('all');
+  const [searchQuery, setSearchQuery] = useState('');
+
+  // Authentication Status
+  const [adminAuthenticated, setAdminAuthenticated] = useState<boolean>(() => {
+    return sessionStorage.getItem('iqtv_admin_active') === 'true';
+  });
+
+  // Modals Visibility
+  const [selectedItem, setSelectedItem] = useState<StoreItem | null>(null);
+  const [isDetailsOpen, setIsDetailsOpen] = useState(false);
+  const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
+  const [isAuthOpen, setIsAuthOpen] = useState(false);
+
+  // Toast Alerts system
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  // Sync state modifications to storage
+  useEffect(() => {
+    localStorage.setItem('iqtv_store_items', JSON.stringify(items));
+  }, [items]);
+
+  useEffect(() => {
+    localStorage.setItem('iqtv_store_settings', JSON.stringify(settings));
+  }, [settings]);
+
+  useEffect(() => {
+    localStorage.setItem('iqtv_security_logs', JSON.stringify(logs));
+  }, [logs]);
+
+  // Toast Helper
+  const showToast = (message: string) => {
+    setToastMessage(message);
+    setTimeout(() => {
+      setToastMessage(null);
+    }, 4500);
+  };
+
+  // Add a structured log entry
+  const addLog = (type: 'info' | 'security' | 'warn' | 'success', message: string) => {
+    const newLog: LogEntry = {
+      id: `log_${Date.now()}`,
+      timestamp: new Date().toLocaleTimeString('ar-IQ'),
+      type,
+      message
+    };
+    setLogs(prev => [newLog, ...prev].slice(0, 40));
+  };
+
+  // Actions
+  const handleSaveSettings = (newSettings: StoreSettings) => {
+    setSettings(newSettings);
+    addLog('info', `قام المسؤول بتعديل بيانات المتجر وطرق التواصل (الواتساب: ${newSettings.whatsappNumber})`);
+    showToast('تمت مزامنة وحفظ التعديلات العامة للمتجر بنجاح!');
+  };
+
+  const handleSaveItem = (itemToSave: StoreItem) => {
+    setItems(prev => {
+      const exists = prev.some(i => i.id === itemToSave.id);
+      if (exists) {
+        addLog('info', `تحديث بيانات الباقة: ${itemToSave.title} في القسم: ${itemToSave.category}`);
+        return prev.map(i => i.id === itemToSave.id ? itemToSave : i);
+      } else {
+        addLog('success', `إضافة منتج وسيرفر جديد إلى المتجر: ${itemToSave.title}`);
+        return [...prev, itemToSave];
+      }
+    });
+    showToast('تم حفظ التعديلات وحفظ الباقة في المتجر بنجاح!');
+  };
+
+  const handleDeleteItem = (id: string) => {
+    const item = items.find(i => i.id === id);
+    if (!item) return;
+    setItems(prev => prev.filter(i => i.id !== id));
+    addLog('warn', `قام الإشراف بحذف المنتج والسيرفر المسمى: (${item.title}) من قاعدة البيانات`);
+    showToast('تم إزالة وحذف المنتج بالكامل بنجاح!');
+  };
+
+  const handleResetDefaults = () => {
+    setItems(initialStoreItems);
+    setSettings(initialStoreSettings);
+    addLog('warn', 'تم استدعاء بروتوكول إعادة تهيئة المتجر وقاعدة البيانات للمصنع.');
+    showToast('تمت إعادة إعدادات المتجر وسيرفراته إلى الحالة القياسية الأولية.');
+  };
+
+  const handleImportDatabase = (importedData: { storeSettings: StoreSettings, items: StoreItem[] }) => {
+    setSettings(importedData.storeSettings);
+    setItems(importedData.items);
+    addLog('success', `تم استيراد نسخة قاعدة بيانات خارجية محدثة بنجاح تشمل عدد ${importedData.items.length} سيرفر`);
+    showToast('تم تحميل واستيراد قاعدة بياناتك المحدّثة بنجاح!');
+  };
+
+  const handleAuthSuccess = (email: string) => {
+    setAdminAuthenticated(true);
+    sessionStorage.setItem('iqtv_admin_active', 'true');
+    setActiveTab('admin');
+    addLog('security', `تحقق ناجح ومكتمل (2FA Checkpass) لمالك الحساب المعتمد: ${email}`);
+    showToast('مرحباً بك يا مسؤول! تم التحقق بنجاح من البريد الإلكتروني والمصادقة بخطوتين.');
+  };
+
+  const handleLogout = () => {
+    setAdminAuthenticated(false);
+    sessionStorage.removeItem('iqtv_admin_active');
+    setActiveTab('store');
+    addLog('security', 'تم تسجيل الخروج الآمن لمدير المتجر وإغلاق لوحة الإشراف بنجاح.');
+    showToast('تم الخروج الآمن وإغلاق الجلسة المحمية للمسؤول.');
+  };
+
+  // Filter Catalog Cards
+  const filteredCatalogItems = items.filter(item => {
+    if (item.status !== 'active') return false;
+
+    // Filters check
+    let categoryMatches = true;
+    if (categoryFilter === 'apps') categoryMatches = item.category === 'apps';
+    else if (categoryFilter === 'devices') categoryMatches = item.category === 'receivers' || item.category === 'tvbox';
+    else if (categoryFilter === 'receivers') categoryMatches = item.category === 'receivers';
+    else if (categoryFilter === 'tvbox') categoryMatches = item.category === 'tvbox';
+
+    // Search query check
+    const cleanQuery = searchQuery.trim().toLowerCase();
+    const titleLower = item.title.toLowerCase();
+    const descLower = item.description.toLowerCase();
+    const promoLower = (item.promo || '').toLowerCase();
+    const searchMatches = !cleanQuery || titleLower.includes(cleanQuery) || descLower.includes(cleanQuery) || promoLower.includes(cleanQuery);
+
+    return categoryMatches && searchMatches;
+  });
+
+  return (
+    <div className="min-h-screen bg-[#0b0f19] bg-space-grid text-gray-100 selection:bg-blue-600 selection:text-white pb-16">
+      
+      {/* Interactive Toast Notifications */}
+      {toastMessage && (
+        <div 
+          id="system-toast-alert"
+          className="fixed bottom-6 right-6 left-6 md:left-auto md:w-96 z-55 bg-gradient-to-r from-blue-700 to-blue-900 border border-blue-500/30 text-white rounded-2xl shadow-2xl p-4 flex items-center gap-3 animate-fade-in"
+        >
+          <div className="bg-blue-500/20 p-2 rounded-xl text-blue-300">
+            <Sparkles className="w-5 h-5 animate-pulse" />
+          </div>
+          <div>
+            <p className="text-[10px] text-blue-100 font-extrabold">إشعار بوابة IQTV 4K الآمنة</p>
+            <h4 className="text-xs font-bold mt-0.5">{toastMessage}</h4>
+          </div>
         </div>
-        <div>
-            <p class="text-xs text-blue-100">إشعار النظام</p>
-            <h4 id="toast-message" class="text-sm font-bold">صورة الإشعار تظهر هنا</h4>
-        </div>
-    </div>
+      )}
 
-    <!-- Navigation Header -->
-    <nav class="sticky top-0 z-40 bg-[#0b0f19]/90 backdrop-blur-md border-b border-slate-800/60 px-4 md:px-8 py-4 flex items-center justify-between">
-        <div class="flex items-center gap-8">
-            <a href="#" onclick="switchTab('store')" class="flex items-center gap-3">
-                <div class="relative">
-                    <div class="absolute inset-0 bg-blue-500 rounded-xl blur opacity-30"></div>
-                    <img id="store-logo" src="https://images.unsplash.com/photo-1594909122845-11baa439b7bf?q=80&w=200&auto=format&fit=crop" alt="Logo" class="relative w-11 h-11 rounded-xl object-cover border border-blue-500/30 shadow-lg">
-                </div>
-                <div>
-                    <span id="store-name" class="text-lg md:text-xl font-extrabold tracking-wider bg-gradient-to-r from-white via-slate-200 to-blue-400 bg-clip-text text-transparent">IQTV 4K</span>
-                    <span class="block text-[10px] text-gray-400 font-medium">الموزع المعتمد في العراق</span>
-                </div>
-            </a>
-            
-            <div class="hidden lg:flex items-center gap-6 text-xs md:text-sm font-semibold text-gray-400">
-                <button onclick="switchTab('store'); filterCategory('all');" class="tod-nav-link text-white active">الرئيسية</button>
-                <button onclick="switchTab('store'); filterCategory('apps');" class="tod-nav-link hover:text-white">السيرفرات والباقات</button>
-                <button onclick="switchTab('store'); filterCategory('devices');" class="tod-nav-link hover:text-white">الأجهزة والستلايت</button>
-                <a href="#footer-section" class="tod-nav-link hover:text-white">الدعم الفني المباشر</a>
+      {/* Modern Navigation Header */}
+      <nav className="sticky top-0 z-40 bg-[#0b0f19]/90 backdrop-blur-md border-b border-slate-850/60 px-4 md:px-8 py-4 flex items-center justify-between">
+        <div className="flex items-center gap-8">
+          <button 
+            onClick={() => setActiveTab('store')} 
+            className="flex items-center gap-3 cursor-pointer text-right group"
+          >
+            <div className="relative">
+              <div className="absolute inset-0 bg-blue-500 rounded-xl blur opacity-30 group-hover:opacity-40 transition"></div>
+              <img 
+                src={settings.logo} 
+                alt="Store Logo" 
+                className="relative w-11 h-11 rounded-xl object-cover border border-blue-500/30 shadow-lg"
+                referrerPolicy="no-referrer"
+              />
             </div>
-        </div>
-        
-        <div class="flex items-center gap-3">
-            <button id="admin-trigger-btn" onclick="openNetlifyLogin()" class="flex items-center gap-2 bg-slate-900 hover:bg-slate-850 px-3 md:px-4 py-2 rounded-xl text-xs font-bold transition duration-250 border border-slate-800 hover:text-white">
-                <i class="fas fa-sliders-h"></i>
-                <span id="admin-btn-text">تسجيل المسؤول</span>
+            <div>
+              <span className="text-lg md:text-xl font-black bg-gradient-to-r from-white via-slate-200 to-blue-400 bg-clip-text text-transparent">
+                {settings.name}
+              </span>
+              <span className="block text-[10px] text-gray-400 font-bold mt-0.5">
+                الموزع المعتمد لباقات وريسيفرات IPTV في العراق
+              </span>
+            </div>
+          </button>
+          
+          <div className="hidden lg:flex items-center gap-8 text-xs font-bold text-gray-400">
+            <button 
+              onClick={() => { setActiveTab('store'); setCategoryFilter('all'); }}
+              className={`hover:text-white transition cursor-pointer ${activeTab === 'store' && categoryFilter === 'all' ? 'text-white border-b-2 border-blue-500 pb-1' : ''}`}
+            >
+              الصفحة الرئيسية
             </button>
-            <a id="telegram-link-btn" href="https://t.me/IQTV4K" target="_blank" class="bg-[#229ED9] hover:bg-[#1e8ec3] hover:scale-105 p-2 rounded-xl text-white transition duration-200 shadow-md shadow-blue-500/10">
-                <i class="fab fa-telegram text-lg"></i>
-            </a>
+            <button 
+              onClick={() => { setActiveTab('store'); setCategoryFilter('apps'); }}
+              className={`hover:text-white transition cursor-pointer ${activeTab === 'store' && categoryFilter === 'apps' ? 'text-white border-b-2 border-blue-500 pb-1' : ''}`}
+            >
+              السيرفرات وتطبيقات IPTV
+            </button>
+            <button 
+              onClick={() => { setActiveTab('store'); setCategoryFilter('devices'); }}
+              className={`hover:text-white transition cursor-pointer ${activeTab === 'store' && (categoryFilter === 'receivers' || categoryFilter === 'tvbox' || categoryFilter === 'devices') ? 'text-white border-b-2 border-blue-500 pb-1' : ''}`}
+            >
+              الأجهزة والريسيفر والستلايت
+            </button>
+          </div>
         </div>
-    </nav>
-
-    <!-- MAIN CLIENT APP VIEW -->
-    <main id="main-store-section" class="container mx-auto px-4 md:px-8 py-8 max-w-7xl">
         
-        <!-- Hero Section -->
-        <header class="relative bg-space-grid rounded-3xl overflow-hidden mb-12 border border-slate-800 pb-12 pt-16 md:py-20 px-6 md:px-16 shadow-2xl">
-            <div class="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(59,130,246,0.15),transparent_45%)]"></div>
+        <div className="flex items-center gap-3">
+          {adminAuthenticated ? (
+            <button 
+              id="btn-trigger-admin-desk"
+              onClick={() => setActiveTab(prev => prev === 'admin' ? 'store' : 'admin')} 
+              className="flex items-center gap-1.5 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-500 hover:to-blue-600 text-white px-3 md:px-4 py-2.5 rounded-xl text-xs font-black transition duration-200 border border-blue-500 shadow-lg shadow-blue-600/25 cursor-pointer"
+            >
+              <ShieldCheck className="w-4 h-4" />
+              <span>{activeTab === 'admin' ? 'الرجوع للمتجر' : 'لوحة الإشراف (نشط)'}</span>
+            </button>
+          ) : (
+            <button 
+              id="btn-trigger-login-modal"
+              onClick={() => setIsAuthOpen(true)} 
+              className="flex items-center gap-1.5 bg-slate-900 hover:bg-slate-850 px-3 md:px-4 py-2.5 rounded-xl text-xs font-black transition duration-200 border border-slate-800 hover:text-white cursor-pointer"
+            >
+              <SlidersHorizontal className="w-4 h-4 text-gray-400" />
+              <span>تسجيل المسؤول</span>
+            </button>
+          )}
+
+          <a 
+            href={settings.telegramLink} 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="bg-[#229ED9] hover:bg-[#1e8ec3] hover:scale-105 p-2.5 rounded-xl text-white transition duration-250 shadow-md shadow-blue-500/10 flex items-center justify-center"
+            title="تليجرام المبيعات"
+          >
+            <Send className="w-4 h-4 fill-white shrink-0" />
+          </a>
+        </div>
+      </nav>
+
+      {/* Main Container */}
+      <main className="container mx-auto px-4 md:px-8 py-8 max-w-7xl">
+        
+        {/* Dynamic switchable page tabs */}
+        {activeTab === 'admin' && adminAuthenticated ? (
+          
+          /* Admin Cockpit Dashboard */
+          <AdminPanel 
+            items={items}
+            settings={settings}
+            logs={logs}
+            onSaveSettings={handleSaveSettings}
+            onSaveItem={handleSaveItem}
+            onDeleteItem={handleDeleteItem}
+            onResetDefaults={handleResetDefaults}
+            onImportDatabase={handleImportDatabase}
+            onLogout={handleLogout}
+          />
+
+        ) : (
+
+          /* Client-facing Storefront */
+          <div className="space-y-12">
             
-            <div class="relative z-10 max-w-3xl">
-                <span class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/15 text-blue-400 text-[11px] font-bold mb-5 border border-blue-500/20">
-                    <i class="fas fa-shield-alt text-blue-400"></i>
-                    <span>وكيل رسمي معتمد وموثوق في العراق</span>
+            {/* Hero banner block */}
+            <header className="relative bg-slate-900 border border-slate-850 rounded-3xl overflow-hidden pb-12 pt-16 md:py-20 px-6 md:px-16 shadow-2xl text-right">
+              <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(59,130,246,0.15),transparent_45%)]"></div>
+              
+              <div className="relative z-10 max-w-3xl space-y-4">
+                <span className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-blue-500/10 text-blue-400 text-[11px] font-black border border-blue-500/20 shadow-sm animate-pulse-slow">
+                  <ShieldCheck className="w-4 h-4" />
+                  <span>الوكيل الحصري المعتمد لجميع السيرفرات الأصلية في العراق</span>
                 </span>
                 
-                <h1 class="text-3xl md:text-5xl lg:text-5xl font-black text-white leading-tight md:leading-snug mb-5">
-                    بث ثنائي الأبعاد و <span class="bg-gradient-to-r from-blue-400 to-blue-600 bg-clip-text text-transparent">قنوات 4K حقيقية</span> ثبات خارق
+                <h1 className="text-3xl md:text-5xl font-black text-white leading-tight md:leading-snug">
+                  جودة بث فائقة و <span className="bg-gradient-to-r from-blue-400 via-blue-500 to-indigo-400 bg-clip-text text-transparent">قنوات 4K حقيقية</span> بثبات مطلق
                 </h1>
                 
-                <p class="text-gray-400 text-sm md:text-base leading-relaxed mb-8 max-w-2xl">
-                    استمتع بأسعار مذهلة لجميع اشتراكات القنوات والمباريات العالمية IPTV. وفر مبالغ هائلة بفضل سيرفراتنا السريعة والخوادم الآمنة لأجهزة التلفاز والهواتف المحدثة على مدار الساعة في العراق.
+                <p className="text-gray-400 text-xs md:text-sm leading-relaxed max-w-2xl font-medium">
+                  استمتع بأقوى اشتراكات القنوات والمباريات العالمية IPTV بأسعار مذهلة في العراق. نوفر تفعيلاً فوريًا على جميع الشاشات الذكية، أجهزة الاندرويد والايفون بمساعدة فريق مبيعات متخصص على مدار الساعة.
                 </p>
 
-                <div class="flex flex-wrap gap-4">
-                    <a id="hero-whatsapp-btn" href="https://wa.me/9647740393776" target="_blank" class="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-6 py-3.5 rounded-2xl transition duration-200 shadow-lg shadow-emerald-600/20 text-sm">
-                        <i class="fab fa-whatsapp text-lg"></i>
-                        <span>طلب استشارة فورية - واتساب</span>
-                    </a>
-                    <a href="#catalog-section" class="flex items-center gap-2 bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-200 font-bold px-6 py-3.5 rounded-2xl transition duration-200 text-sm">
-                        <span>عرض وحجز السيرفرات</span>
-                        <i class="fas fa-arrow-left"></i>
-                    </a>
+                <div className="flex flex-wrap gap-4 pt-4">
+                  <a 
+                    id="hero-whatsapp-link"
+                    href={`https://wa.me/${settings.whatsappNumber}`} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white font-black px-6 py-3.5 rounded-2xl transition duration-200 shadow-xl shadow-emerald-600/30 text-xs md:text-sm cursor-pointer"
+                  >
+                    <Smartphone className="w-5 h-5" />
+                    <span>طلب استشارة أو تفعيل عبر الواتساب</span>
+                  </a>
+                  <a 
+                    href="#catalog-view-section" 
+                    className="flex items-center gap-2 bg-slate-950 hover:bg-slate-850 border border-slate-850 text-slate-200 font-extrabold px-6 py-3.5 rounded-2xl transition duration-200 text-xs md:text-sm"
+                  >
+                    <span>عرض ومقارنة الباقات المتاحة</span>
+                  </a>
                 </div>
-            </div>
+              </div>
 
-            <div class="relative mt-12 grid grid-cols-2 sm:grid-cols-4 gap-4 max-w-4xl border-t border-slate-800/80 pt-8 z-10">
+              {/* Bento styled statistics counters */}
+              <div className="relative mt-12 grid grid-cols-2 sm:grid-cols-4 gap-4 max-w-4xl border-t border-slate-850/80 pt-8 z-10 text-right">
+                <div className="space-y-1">
+                  <span className="block text-xl lg:text-2xl font-black text-white">4K UHD</span>
+                  <span className="text-[10px] text-gray-500 font-extrabold">بث حقيقي فائق الدقة</span>
+                </div>
+                <div className="space-y-1">
+                  <span className="block text-xl lg:text-2xl font-black text-blue-500">100%</span>
+                  <span className="text-[10px] text-gray-500 font-extrabold">أكواد مرخصة وغير مشتركة</span>
+                </div>
+                <div className="space-y-1">
+                  <span className="block text-xl lg:text-2xl font-black text-white">24 ساعة</span>
+                  <span className="text-[10px] text-gray-500 font-extrabold">دعم فني وتفعيل مستمر</span>
+                </div>
+                <div className="space-y-1">
+                  <span className="block text-xl lg:text-2xl font-black text-emerald-500">مستقر</span>
+                  <span className="text-[10px] text-gray-500 font-extrabold">خوادم أوروبية لضغط المباريات</span>
+                </div>
+              </div>
+            </header>
+
+            {/* Catalog Grid Section with Title and Search tool */}
+            <div id="catalog-view-section" className="space-y-8 scroll-mt-24">
+              
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
                 <div>
-                    <span class="block text-2xl lg:text-3xl font-black text-white">4K UHD</span>
-                    <span class="text-xs text-gray-500">جودة البث المدعومة</span>
-                </div>
-                <div>
-                    <span class="block text-2xl lg:text-3xl font-black text-blue-500">100%</span>
-                    <span class="text-xs text-gray-500">أكواد وكلاء رسمية حصرية</span>
-                </div>
-                <div>
-                    <span class="block text-2xl lg:text-3xl font-black text-white">24/7</span>
-                    <span class="text-xs text-gray-500">دعم فني وتفعيل فوري</span>
-                </div>
-                <div>
-                    <span class="block text-2xl lg:text-3xl font-black text-emerald-500">99.9%</span>
-                    <span class="text-xs text-gray-500">ثبات السيرفرات وقت الضغط</span>
-                </div>
-            </div>
-        </header>
-
-        <!-- Search Bar and Section Title -->
-        <div id="catalog-section" class="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8 scroll-mt-24">
-            <div>
-                <h2 class="text-xl md:text-2xl font-black text-white flex items-center gap-2.5">
-                    <i class="fas fa-tv text-blue-500"></i>
-                    <span>دليل السيرفرات والأجهزة المتاحة حالياً</span>
-                </h2>
-                <p class="text-xs text-gray-400 mt-1">اضغط على عرض التفاصيل لاختيار الباقة وتفعيل كودك بضغطة زر</p>
-            </div>
-
-            <div class="relative w-full md:w-80">
-                <i class="fas fa-search absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-500"></i>
-                <input
-                    type="text"
-                    id="search-input"
-                    oninput="handleSearch()"
-                    placeholder="ابحث عن سيرفر أو تطبيق..."
-                    class="w-full bg-slate-900 border border-slate-800 focus:border-blue-500 rounded-xl py-2.5 pr-10 pl-4 text-xs font-semibold text-white placeholder-gray-500 focus:outline-none transition duration-200"
-                />
-            </div>
-        </div>
-
-        <!-- Filters -->
-        <div class="flex items-center gap-2 md:gap-3 overflow-x-auto pb-4 mb-8">
-            <button onclick="filterCategory('all')" id="filter-all" class="cat-pill px-4 py-2 text-xs font-bold rounded-xl whitespace-nowrap transition duration-200 cursor-pointer border bg-blue-600 border-blue-500 text-white shadow-lg shadow-blue-500/20">جميع المنتجات والسيرفرات</button>
-            <button onclick="filterCategory('apps')" id="filter-apps" class="cat-pill px-4 py-2 text-xs font-bold rounded-xl whitespace-nowrap transition duration-200 cursor-pointer border bg-slate-900 border-slate-800/80 text-gray-400 hover:text-white">تطبيقات IPTV</button>
-            <button onclick="filterCategory('devices')" id="filter-devices" class="cat-pill px-4 py-2 text-xs font-bold rounded-xl whitespace-nowrap transition duration-200 cursor-pointer border bg-slate-900 border-slate-800/80 text-gray-400 hover:text-white">الأجهزة والستلايتات</button>
-            <button onclick="filterCategory('receivers')" id="filter-receivers" class="cat-pill px-4 py-2 text-xs font-bold rounded-xl whitespace-nowrap transition duration-200 cursor-pointer border bg-slate-900 border-slate-800/80 text-gray-400 hover:text-white">أجهزة ريسيفر</button>
-            <button onclick="filterCategory('tvbox')" id="filter-tvbox" class="cat-pill px-4 py-2 text-xs font-bold rounded-xl whitespace-nowrap transition duration-200 cursor-pointer border bg-slate-900 border-slate-800/80 text-gray-400 hover:text-white">أجهزة TV BOX</button>
-        </div>
-
-        <!-- Direct grid -->
-        <div id="catalog-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            <!-- Dynamically populated from script -->
-        </div>
-
-    </main>
-
-    <!-- ADMIN PANEL SCREEN -->
-    <main id="admin-panel-section" class="hidden container mx-auto px-4 md:px-8 py-8 max-w-7xl">
-        
-        <!-- Secure login fallback wall if somehow opened without auth -->
-        <div id="admin-lock-screen" class="max-w-md mx-auto my-16 bg-slate-900 border border-slate-800 rounded-3xl p-6 md:p-8 shadow-2xl text-center">
-            <div class="bg-blue-700/10 text-blue-500 w-12 h-12 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-blue-500/20">
-                <i class="fas fa-shield-halved text-xl"></i>
-            </div>
-            <h2 class="text-lg font-black text-white">بوابة التحكم والتحقق الآمن</h2>
-            <p class="text-xs text-gray-400 mt-2 leading-relaxed">
-                هذه المساحة مخصصة لإدارة متجر IQTV 4K. يرجى تفعيل الدخول والتحقق الآمن الموثق من نيتلفاي للمتابعة.
-            </p>
-            <button onclick="openNetlifyLogin()" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 px-4 rounded-xl text-xs transition duration-150 mt-6 shadow-md shadow-blue-500/15">
-                تأكيد الدخول الآمن الآن
-            </button>
-        </div>
-
-        <!-- Authenticated Admin panel View -->
-        <div id="admin-actual-view" class="hidden space-y-8">
-            <div class="flex flex-col md:flex-row md:items-center justify-between border-b border-slate-800 pb-5 gap-4">
-                <div>
-                    <p class="text-xs text-blue-500 font-extrabold uppercase tracking-widest">مبيعات IQTV 4K التفاعلية</p>
-                    <h1 class="text-2xl font-black text-white flex items-center gap-2.5 mt-1">
-                        <i class="fas fa-sliders text-blue-500"></i>
-                        <span>لوحة تحكم وتحديث المتجر المتطورة</span>
-                    </h1>
+                  <h2 className="text-xl md:text-2xl font-black text-white flex items-center gap-2.5">
+                    <Tv className="w-5 h-5 text-blue-500 shrink-0" />
+                    <span>دليل الأجهزة وباقات السيرفرات المتاحة حالياً</span>
+                  </h2>
+                  <p className="text-xs text-gray-400 mt-1">تصفح أقوى السيرفرات الحاصلة على تقييمات عالية في العراق بمزايا تفعيل آمنة.</p>
                 </div>
 
-                <div class="flex items-center gap-3">
-                    <button onclick="exportJsonDatabase()" class="bg-slate-900 hover:bg-slate-850 text-slate-300 border border-slate-800 hover:text-white text-xs font-bold px-4 py-2.5 rounded-xl transition flex items-center gap-1.5 shadow-sm">
-                        <i class="fas fa-download"></i>
-                        <span>تصدير نسخة احتياطية (.json)</span>
-                    </button>
-                    
-                    <label class="bg-slate-900 hover:bg-slate-850 text-slate-300 border border-slate-800 hover:text-white text-xs font-bold px-4 py-2.5 rounded-xl transition flex items-center gap-1.5 cursor-pointer shadow-sm">
-                        <i class="fas fa-upload"></i>
-                        <span>استيراد قاعدة بيانات .json</span>
-                        <input type="file" accept=".json" onchange="importJsonDatabase(event)" class="hidden">
-                    </label>
-
-                    <button onclick="netlifyLogout()" class="bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/15 text-xs font-bold px-4 py-2.5 rounded-xl transition flex items-center gap-1.5 shadow-sm">
-                        <i class="fas fa-sign-out-alt"></i>
-                        <span>تسجيل الخروج</span>
-                    </button>
+                {/* Live search input */}
+                <div className="relative w-full md:w-80">
+                  <input 
+                    type="text" 
+                    id="search-input-catalog"
+                    placeholder="ابحث عن سيرفر أو جهاز بالتحديد..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="w-full bg-slate-900 border border-slate-850 focus:border-blue-500 rounded-xl py-3 pr-10 pl-4 text-xs font-bold text-white placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-blue-500 text-right"
+                  />
+                  <Search className="w-4 h-4 absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-500" />
                 </div>
-            </div>
+              </div>
 
-            <!-- Stats & Panel inputs -->
-            <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
-                <!-- General Settings block -->
-                <div class="bg-slate-900 rounded-3xl border border-slate-800 p-6 md:col-span-2 space-y-4">
-                    <h3 class="text-sm font-black text-white flex items-center gap-2 pb-2 border-b border-slate-800/80">
-                        <i class="fas fa-cog text-blue-400"></i>
-                        <span>إعداد عام للوكيل والمتجر</span>
-                    </h3>
-
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <div>
-                        <label class="block text-[10px] text-gray-500 font-bold mb-1">اسم المتجر</label>
-                        <input type="text" id="admin-input-store-name" class="w-full bg-[#0b0f19] border border-slate-855 rounded-xl p-2.5 text-xs font-semibold text-white focus:outline-none focus:border-blue-500">
-                      </div>
-                      <div>
-                        <label class="block text-[10px] text-gray-500 font-bold mb-1">رقم الواتساب (بدون +)</label>
-                        <input type="text" id="admin-input-whatsapp" placeholder="9647740393776" class="w-full bg-[#0b0f19] border border-slate-855 rounded-xl p-2.5 text-xs font-semibold text-white text-left focus:outline-none focus:border-blue-500">
-                      </div>
-                    </div>
-
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <div>
-                        <label class="block text-[10px] text-gray-500 font-bold mb-1">رابط تليجرام</label>
-                        <input type="text" id="admin-input-telegram" class="w-full bg-[#0b0f19] border border-slate-855 rounded-xl p-2.5 text-xs font-semibold text-white text-left focus:outline-none focus:border-blue-500">
-                      </div>
-                      <div>
-                        <label class="block text-[10px] text-gray-500 font-bold mb-1">رابط صورة الـ Logo</label>
-                        <input type="text" id="admin-input-logo" class="w-full bg-[#0b0f19] border border-slate-855 rounded-xl p-2.5 text-xs font-semibold text-white text-left focus:outline-none focus:border-blue-500">
-                      </div>
-                    </div>
-
-                    <div>
-                      <label class="block text-[10px] text-gray-500 font-bold mb-1">نص الفوتر التعريفي</label>
-                      <textarea id="admin-input-footer" rows="2" class="w-full bg-[#0b0f19] border border-slate-855 rounded-xl p-2.5 text-xs font-semibold text-white focus:outline-none focus:border-blue-500"></textarea>
-                    </div>
-
-                    <button onclick="saveAdminGeneralSettings()" class="w-full bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold py-2.5 px-4 rounded-xl transition duration-150">
-                        حفظ التغييرات العامة وتحديث الواجهة
-                    </button>
-                </div>
-
-                <!-- Database stats -->
-                <div class="bg-slate-900 rounded-3xl border border-slate-800 p-6 flex flex-col justify-between">
-                    <div>
-                      <h3 class="text-sm font-black text-white flex items-center gap-2 pb-2 border-b border-slate-800/80">
-                        <i class="fas fa-chart-line text-emerald-400"></i>
-                        <span>مراقبة قاعدة البيانات</span>
-                      </h3>
-                      <p class="text-[11px] text-gray-400 leading-relaxed mt-3">
-                        تتبع الباقات المعروضة للزبائن وتلك المسودة بمرونة من مؤشرات الجدول الداخلي.
-                      </p>
-                    </div>
-
-                    <div class="grid grid-cols-2 gap-4 my-4">
-                      <div class="bg-[#0b0f19] p-4 rounded-2xl border border-slate-850 text-center">
-                        <span id="stat-active-count" class="block text-2xl font-black text-blue-500">0</span>
-                        <span class="text-[9px] text-gray-500 font-bold">معروض حالياً</span>
-                      </div>
-                      <div class="bg-[#0b0f19] p-4 rounded-2xl border border-slate-850 text-center">
-                        <span id="stat-hidden-count" class="block text-2xl font-black text-amber-500">0</span>
-                        <span class="text-[9px] text-gray-500 font-bold">مخفي مؤقتاً</span>
-                      </div>
-                    </div>
-
-                    <div class="border-t border-slate-850/80 pt-3 text-[10px] text-gray-500 flex items-center justify-between">
-                      <span>إجمالي بنود المتجر:</span>
-                      <span id="stat-total-count" class="font-bold text-white">0 عنصر</span>
-                    </div>
-                </div>
-
-                <!-- Fast Actions -->
-                <div class="bg-slate-900 rounded-3xl border border-slate-800 p-6 flex flex-col justify-between">
-                    <div>
-                      <h3 class="text-sm font-black text-white flex items-center gap-2 pb-2 border-b border-slate-800/80">
-                        <i class="fas fa-plus text-purple-400"></i>
-                        <span>الخيارات السريعة</span>
-                      </h3>
-                      <p class="text-[11px] text-gray-400 leading-relaxed mt-3">
-                        تتيح لك اللوحة إضافة وتخصيص أسعار الاشتراك وإرسال البيانات مباشرة للزبائن فور الحجز.
-                      </p>
-                    </div>
-
-                    <div class="space-y-2 mt-6">
-                      <button onclick="handleAddNewItem()" class="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white text-xs font-bold py-3 px-4 rounded-xl transition duration-150 flex items-center justify-center gap-1.5 shadow-md shadow-blue-500/10">
-                        <i class="fas fa-plus-circle"></i>
-                        <span>إضافة سيرفر/جهاز جديد</span>
-                      </button>
-
-                      <button onclick="resetToFactoryDefaults()" class="w-full bg-slate-950 text-slate-500 hover:text-red-400 border border-slate-850 hover:border-red-500/20 text-[10px] font-bold py-2 px-3 rounded-lg transition duration-200">
-                        إعادة تهيئة المتجر للمصنع الافتراضي
-                      </button>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Operational table -->
-            <div class="bg-slate-900 rounded-3xl border border-slate-800 overflow-hidden">
-                <div class="p-5 border-b border-slate-800 bg-slate-900/60 flex items-center justify-between">
-                    <div>
-                      <h3 class="font-extrabold text-white text-sm">قائمة السيرفرات والأجهزة المودعة بالبوابة</h3>
-                      <p class="text-[10px] text-gray-500">للتحرير والتعديل على الباقات وحذف العروض من العرض العام</p>
-                    </div>
-                </div>
-                
-                <div class="overflow-x-auto">
-                    <table class="w-full text-right border-collapse">
-                      <thead>
-                        <tr class="bg-[#0b0f19] border-b border-slate-800 text-slate-400 text-xs font-bold">
-                          <th class="p-4">العنصر والعرض</th>
-                          <th class="p-4">القسم والنوع</th>
-                          <th className="p-4">عدد القنوات (لالسيرفرات)</th>
-                          <th className="p-4">الحالة العامة</th>
-                          <th className="p-4 text-left">إجراءات التحكم</th>
-                        </tr>
-                      </thead>
-                      <tbody id="admin-table-rows" class="text-xs text-slate-300 divide-y divide-slate-850">
-                        <!-- Populated by script -->
-                      </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-
-    </main>
-
-    <!-- FOOTER HUB -->
-    <footer id="footer-section" class="bg-[#060911] border-t border-slate-800/80 mt-20 px-4 py-12 text-sm text-gray-400">
-        <div class="container mx-auto max-w-7xl grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
-            <div>
-                <h4 id="footer-store-name" class="text-white font-bold text-base mb-4">IQTV 4K</h4>
-                <p id="footer-description-text" class="text-xs leading-relaxed text-gray-400">الموزع المعتمد لجميع السيرفرات الأصلية وتطبيقات IPTV وأجهزة الستلايت المتطورة في العراق. نضمن لك بثاً ثابتاً وتجربة 4K حقيقية.</p>
-            </div>
-            <div>
-                <h4 class="text-white font-bold text-base mb-4">روابط سريعة وسريعة</h4>
-                <div class="grid grid-cols-2 gap-2 text-xs">
-                    <a id="footer-telegram" href="https://t.me/IQTV4K" target="_blank" class="hover:text-white transition"><i class="fab fa-telegram text-blue-400 ml-1"></i> قناة التليجرام</a>
-                    <a id="footer-whatsapp" href="https://wa.me/9647740393776" target="_blank" class="hover:text-white transition"><i class="fab fa-whatsapp text-green-400 ml-1"></i> الدعم الفني الفوري</a>
-                </div>
-            </div>
-            <div>
-                <h4 class="text-white font-bold text-base mb-4">إخلاء مسؤولية عام</h4>
-                <p class="text-[11px] text-gray-500 leading-relaxed">نحن موزعون معتمدون للأكواد والسيرفرات الأصلية، ونحرص على تقديم الدعم الكامل لكافة المشتركين. استقرار البث يعتمد كلياً على جودة وسرعة الإنترنت المتوفرة لدى العميل.</p>
-            </div>
-        </div>
-        <div class="container mx-auto max-w-7xl border-t border-gray-900 pt-6 text-center text-xs text-gray-500 flex flex-col md:flex-row items-center justify-between gap-4">
-            <p>© 2026 جميع الحقوق محفوظة لـ <span id="footer-copyright">IQTV 4K</span>.</p>
-            <div class="flex items-center gap-4 text-lg">
-                <a id="icon-telegram" href="https://t.me/IQTV4K" target="_blank" class="hover:text-white transition"><i class="fab fa-telegram"></i></a>
-                <a id="icon-whatsapp" href="https://wa.me/9647740393776" target="_blank" class="hover:text-white transition"><i class="fab fa-whatsapp"></i></a>
-            </div>
-        </div>
-    </footer>
-
-
-    <!-- DIALOG MODAL: DETAILS -->
-    <div id="details-modal" class="hidden fixed inset-0 z-50 bg-black/95 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto">
-        <div class="bg-slate-900 border border-slate-800 rounded-3xl w-full max-w-2xl my-auto shadow-2xl overflow-hidden relative">
-            <button onclick="closeDetailsModal()" class="absolute top-4 left-4 z-10 bg-black/40 hover:bg-black/60 text-white w-8 h-8 rounded-full flex items-center justify-center transition">
-                <i class="fas fa-times"></i>
-            </button>
-
-            <div class="h-48 md:h-64 relative bg-slate-800">
-                <img id="modal-item-image" src="" alt="Server Cover" class="w-full h-full object-cover">
-                <div class="absolute inset-0 bg-gradient-to-t from-slate-900 via-transparent to-black/55"></div>
-                <div class="absolute bottom-4 right-6">
-                    <span id="modal-item-badge" class="bg-blue-600 text-[10px] font-bold text-white px-2.5 py-0.5 rounded-md uppercase tracking-wider"></span>
-                    <h2 id="modal-item-title" class="text-xl md:text-3xl font-black text-white mt-1">BEST 4K</h2>
-                </div>
-            </div>
-
-            <div class="p-6 space-y-6">
-                <div class="bg-blue-500/5 border border-blue-500/10 p-4 rounded-xl">
-                    <p id="modal-item-promo" class="text-xs md:text-sm text-blue-400 leading-relaxed font-semibold">رسالة ترويجية ممتازة للسيرفر تظهر هنا.</p>
-                </div>
-
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div class="space-y-4">
-                        <h4 class="text-white font-bold text-sm border-r-2 border-blue-500 pr-2">معلومات فنية عن الاشتراك</h4>
-                        <ul class="text-xs text-gray-300 space-y-2">
-                            <li class="flex items-center gap-2"><i class="fas fa-tv text-gray-500 w-4"></i> القنوات والسينما: <span id="modal-item-channels" class="font-bold text-white">0000+ قناة</span></li>
-                            <li class="flex items-center gap-2"><i class="fas fa-tachometer-alt text-gray-500 w-4"></i> النت المطلوب: <span id="modal-item-requirements" class="text-gray-400">8 ميجا مستقرة</span></li>
-                        </ul>
-                        <p id="modal-item-description" class="text-xs text-gray-405 leading-relaxed">تفاصيل ووصف كامل حول مميزات وثبات السيرفر ومحتواه الفريد.</p>
-                    </div>
-
-                    <div class="bg-slate-950 p-4 rounded-xl border border-slate-800">
-                        <h4 class="text-white font-bold text-sm mb-3 text-center">باقات الأسعار المتاحة لجميع المدد</h4>
-                        <div id="modal-prices-list" class="space-y-2">
-                            <!-- Pricing tiers list -->
-                        </div>
-                    </div>
-                </div>
-
-                <div class="text-[10px] text-gray-500 bg-black/20 p-3 rounded-lg border border-slate-805">
-                    <span class="block font-bold text-gray-400 mb-1"><i class="fas fa-exclamation-triangle"></i> إخلاء مسؤولية للزبائن</span>
-                    <p id="modal-item-disclaimer"></p>
-                </div>
-
-                <div class="grid grid-cols-2 gap-4 pt-2">
-                    <button onclick="requestFreeTrial()" class="bg-transparent hover:bg-slate-800 text-white font-bold py-3.5 rounded-xl border border-slate-800 transition text-xs md:text-sm flex items-center justify-center gap-2">
-                        <i class="fab fa-whatsapp text-emerald-500"></i> طلب تجربة مجانية
-                    </button>
-                    <button onclick="openCheckoutForm()" class="bg-blue-600 hover:bg-blue-500 text-white font-bold py-3.5 rounded-xl transition text-xs md:text-sm shadow-lg shadow-blue-600/20">
-                        <i class="fas fa-shopping-cart ml-1"></i> طلب الاشتراك الفوري
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-
-    <!-- DIALOG MODAL: CHECKOUT -->
-    <div id="checkout-modal" class="hidden fixed inset-0 z-50 bg-black/95 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto">
-        <div class="bg-slate-900 border border-slate-800 rounded-3xl w-full max-w-sm my-auto p-6 shadow-2xl relative">
-            <button onclick="closeCheckoutModal()" class="absolute top-4 left-4 text-gray-40s hover:text-white"><i class="fas fa-times"></i></button>
-            
-            <h3 class="font-black text-white text-lg mb-2 flex items-center gap-2"><i class="fas fa-file-invoice text-blue-500"></i> استمارة الاشتراك المباشر</h3>
-            <p class="text-xs text-gray-404 mb-6">يرجى ملء البيانات لتجهيز تفعيل الكود وإرساله لك فوراً عبر الواتساب.</p>
-
-            <form id="order-form" onsubmit="submitCheckoutOrder(event)" class="space-y-4">
-                <div>
-                    <label class="block text-xs font-semibold text-gray-404 mb-1">الاسم الكامل للزبون</label>
-                    <input type="text" id="order-name" required class="w-full bg-[#0b0f19] border border-slate-800 rounded-xl p-3 text-sm text-white focus:outline-none focus:border-blue-500">
-                </div>
-                <div>
-                    <label class="block text-xs font-semibold text-gray-404 mb-1">رقم هاتف الزبون</label>
-                    <input type="tel" id="order-phone" placeholder="07xxxxxxxx" required class="w-full bg-[#0b0f19] border border-slate-800 rounded-xl p-3 text-sm text-white text-left focus:outline-none focus:border-blue-500">
-                </div>
-                <div>
-                    <label class="block text-xs font-semibold text-gray-404 mb-1">نوع جهازك المستخدم لتشغيل الخدمة</label>
-                    <select id="order-device" class="w-full bg-[#0b0f19] border border-slate-800 rounded-xl p-3 text-sm text-white focus:outline-none focus:border-blue-500">
-                        <option value="شاشات اندرويد (كود تطبيق Downloader متوفر)">شاشة Smart TV اندرويد</option>
-                        <option value="شاشات ال جي وسامسونج (تطبيق IBO PLAYER)">شاشة LG / Samsung الذكية</option>
-                        <option value="ايفون (رابط متجر آبل ستور متوفر)">ايفون / ايباد Apple</option>
-                        <option value="اندرويد (رابط تطبيق الـ APK متوفر)">موبايل / تابلت اندرويد Android</option>
-                    </select>
-                </div>
-                <div>
-                    <label class="block text-xs font-semibold text-gray-404 mb-1">مدة الاشتراك المطلوبة</label>
-                    <select id="order-duration" class="w-full bg-[#0b0f19] border border-slate-800 rounded-xl p-3 text-sm text-white focus:outline-none focus:border-blue-500">
-                        <!-- Pricing options -->
-                    </select>
-                </div>
-                
-                <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3.5 rounded-xl transition text-sm shadow-lg shadow-emerald-600/20 mt-6 flex items-center justify-center gap-2">
-                    <i class="fab fa-whatsapp text-base"></i> إرسال الطلب وتفعيل فوري
+              {/* Aesthetic category filter pills */}
+              <div className="flex items-center gap-2.5 overflow-x-auto pb-2 font-bold scrollbar-none">
+                <button 
+                  onClick={() => setCategoryFilter('all')}
+                  className={`px-4 py-2 text-xs font-black rounded-xl border whitespace-nowrap transition cursor-pointer ${categoryFilter === 'all' ? 'bg-blue-600 border-blue-500 text-white shadow-lg shadow-blue-500/20' : 'bg-slate-900 border-slate-850 text-gray-400 hover:text-white'}`}
+                >
+                  جميع المعروضات والسيرفرات
                 </button>
-            </form>
-        </div>
-    </div>
+                <button 
+                  onClick={() => setCategoryFilter('apps')}
+                  className={`px-4 py-2 text-xs font-black rounded-xl border whitespace-nowrap transition cursor-pointer ${categoryFilter === 'apps' ? 'bg-blue-600 border-blue-500 text-white shadow-lg shadow-blue-500/20' : 'bg-slate-900 border-slate-850 text-gray-400 hover:text-white'}`}
+                >
+                  تطبيقات وقنوات IPTV
+                </button>
+                <button 
+                  onClick={() => setCategoryFilter('devices')}
+                  className={`px-4 py-2 text-xs font-black rounded-xl border whitespace-nowrap transition cursor-pointer ${categoryFilter === 'devices' ? 'bg-blue-600 border-blue-500 text-white shadow-lg shadow-blue-500/20' : 'bg-slate-900 border-slate-850 text-gray-400 hover:text-white'}`}
+                >
+                  أجهزة تشغيل البث
+                </button>
+                <button 
+                  onClick={() => setCategoryFilter('receivers')}
+                  className={`px-4 py-2 text-xs font-black rounded-xl border whitespace-nowrap transition cursor-pointer ${categoryFilter === 'receivers' ? 'bg-blue-600 border-blue-500 text-white shadow-lg shadow-blue-500/20' : 'bg-slate-900 border-slate-850 text-gray-400 hover:text-white'}`}
+                >
+                  أجهزة ريسيفر فضائية
+                </button>
+                <button 
+                  onClick={() => setCategoryFilter('tvbox')}
+                  className={`px-4 py-2 text-xs font-black rounded-xl border whitespace-nowrap transition cursor-pointer ${categoryFilter === 'tvbox' ? 'bg-blue-600 border-blue-500 text-white shadow-lg shadow-blue-500/20' : 'bg-slate-900 border-slate-850 text-gray-400 hover:text-white'}`}
+                >
+                  أجهزة TV Box
+                </button>
+              </div>
 
+              {/* Dynamic Grid list */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                {filteredCatalogItems.map((item) => {
+                  
+                  // Helper to print minimum price element
+                  const priceListArray = Object.values(item.prices).filter(p => p !== '').map(Number);
+                  const minPrice = priceListArray.length > 0 ? Math.min(...priceListArray) : null;
+                  const formattedLowPrice = minPrice ? `${minPrice.toLocaleString()} د.ع` : 'طلب مباشر';
 
-    <!-- DIALOG MODAL: ADD/EDIT ITEM -->
-    <div id="item-modal" class="hidden fixed inset-0 z-50 bg-black/90 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto">
-        <div class="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-xl my-auto p-6 shadow-2xl relative">
-            <button onclick="closeItemModal()" class="absolute top-4 left-4 text-gray-400 hover:text-white"><i class="fas fa-times"></i></button>
-            
-            <h3 id="item-modal-title" class="font-bold text-white text-base mb-6">إضافة عنصر جديد بالمتجر</h3>
-            
-            <form id="item-form" onsubmit="saveItemFormSubmit(event)" class="space-y-4 text-xs">
-                <input type="hidden" id="edit-item-id">
-                
-                <div class="grid grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-gray-400 mb-1">اسم السيرفر أو الجهاز</label>
-                        <input type="text" id="item-title" required class="w-full bg-[#0b0f19] border border-slate-800 rounded-lg p-2 text-white focus:outline-none focus:border-blue-500">
-                    </div>
-                    <div>
-                        <label class="block text-gray-400 mb-1">القسم</label>
-                        <select id="item-category" class="w-full bg-[#0b0f19] border border-slate-800 rounded-lg p-2 text-white focus:outline-none focus:border-blue-500">
-                            <option value="apps">تطبيق IPTV</option>
-                            <option value="receivers">جهاز ريسيفر</option>
-                            <option value="tvbox">جهاز TV BOX</option>
-                        </select>
-                    </div>
-                </div>
+                  const categoryLabelMapping = {
+                    apps: 'تطبيق IPTV ذكي',
+                    receivers: 'ريسيفر ستلايت',
+                    tvbox: 'جهاز TV Box ذكي'
+                  };
 
-                <div class="grid grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-gray-400 mb-1">رابط صورة العنصر</label>
-                        <input type="text" id="item-image" required class="w-full bg-[#0b0f19] border border-slate-800 rounded-lg p-2 text-white focus:outline-none focus:border-blue-500">
-                    </div>
-                    <div>
-                        <label class="block text-gray-400 mb-1">عدد القنوات (مثال: 12000+ قناة)</label>
-                        <input type="text" id="item-channels" class="w-full bg-[#0b0f19] border border-slate-800 rounded-lg p-2 text-white focus:outline-none focus:border-blue-500">
-                    </div>
-                </div>
+                  return (
+                    <div 
+                      key={item.id} 
+                      className="bg-slate-900 border border-slate-850 rounded-3xl overflow-hidden shadow-xl hover:border-blue-500/40 transition duration-300 flex flex-col justify-between group relative text-right"
+                    >
+                      <div className="absolute inset-0 border border-transparent rounded-3xl group-hover:border-blue-500/10 pointer-events-none transition duration-300"></div>
+                      
+                      {/* Cover Thumbnail */}
+                      <div className="relative h-48 overflow-hidden bg-slate-950">
+                        <img 
+                          src={item.image} 
+                          alt={item.title} 
+                          className="w-full h-full object-cover group-hover:scale-104 transition duration-500"
+                          referrerPolicy="no-referrer"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/15 to-transparent"></div>
+                        <span className="absolute bottom-3 right-3 bg-slate-950/80 backdrop-blur-md border border-slate-800 text-[10px] font-extrabold text-blue-400 px-3 py-1 rounded-lg">
+                          {categoryLabelMapping[item.category] || item.category}
+                        </span>
+                      </div>
 
-                <div>
-                    <label class="block text-gray-400 mb-1">رسالة ترويجية داخله</label>
-                    <input type="text" id="item-promo" class="w-full bg-[#0b0f19] border border-slate-800 rounded-lg p-2 text-white focus:outline-none focus:border-blue-500">
-                </div>
-
-                <div class="grid grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-gray-400 mb-1">متطلبات التشغيل (مثال: نت 8 ميجا)</label>
-                        <input type="text" id="item-requirements" class="w-full bg-[#0b0f19] border border-slate-800 rounded-lg p-2 text-white focus:outline-none focus:border-blue-500">
-                    </div>
-                    <div>
-                        <label class="block text-gray-400 mb-1">حالة العرض</label>
-                        <select id="item-status" class="w-full bg-[#0b0f19] border border-slate-800 rounded-lg p-2 text-white focus:outline-none focus:border-blue-500">
-                            <option value="active">متاح في المتجر (نشط)</option>
-                            <option value="hidden">مخفي مؤقتاً (مسودة)</option>
-                        </select>
-                    </div>
-                </div>
-
-                <div>
-                    <label class="block text-gray-400 mb-1">وصف المنتج الكامل ووصف مميزاته</label>
-                    <textarea id="item-description" rows="3" class="w-full bg-[#0b0f19] border border-slate-800 rounded-lg p-2 text-white focus:outline-none focus:border-blue-500"></textarea>
-                </div>
-
-                <div>
-                    <label class="block text-gray-400 mb-1">إشعار إخلاء مسؤولية السيرفر</label>
-                    <input type="text" id="item-disclaimer" class="w-full bg-[#0b0f19] border border-slate-800 rounded-lg p-2 text-white focus:outline-none focus:border-blue-500">
-                </div>
-
-                <div class="bg-[#0b0f19] p-4 rounded-xl border border-slate-800">
-                    <span class="block font-bold text-white mb-2">قائمة الأسعار بالدينار العراقي (أرقام فقط)</span>
-                    <div class="grid grid-cols-2 gap-2">
-                        <div>
-                            <label class="block text-[10px] text-gray-400">سعر باقة شهر</label>
-                            <input type="text" id="price-1m" class="w-full bg-slate-900 border border-slate-800 rounded-lg p-1.5 text-white">
+                      {/* Info Block */}
+                      <div className="p-5 flex-grow flex flex-col justify-between space-y-4">
+                        <div className="space-y-2">
+                          <h3 className="text-base font-black text-white group-hover:text-blue-400 transition">
+                            {item.title}
+                          </h3>
+                          <p className="text-[11.5px] text-gray-400 leading-relaxed line-clamp-3 font-semibold">
+                            {item.description}
+                          </p>
                         </div>
-                        <div>
-                            <label class="block text-[10px] text-gray-400">سعر باقة 3 أشهر</label>
-                            <input type="text" id="price-3m" class="w-full bg-slate-900 border border-slate-800 rounded-lg p-1.5 text-white">
-                        </div>
-                        <div>
-                            <label class="block text-[10px] text-gray-400">سعر باقة 6 أشهر</label>
-                            <input type="text" id="price-6m" class="w-full bg-slate-900 border border-slate-800 rounded-lg p-1.5 text-white">
-                        </div>
-                        <div>
-                            <label class="block text-[10px] text-gray-400">سعر سنة كاملة</label>
-                            <input type="text" id="price-1y" class="w-full bg-slate-900 border border-slate-800 rounded-lg p-1.5 text-white">
-                        </div>
-                    </div>
-                </div>
 
-                <button type="submit" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-2.5 rounded-lg transition">حفظ البنود بالمتجر الآن</button>
-            </form>
-        </div>
-    </div>
+                        <div className="space-y-4">
+                          <div className="text-[10px] text-gray-400 bg-slate-950/50 border border-slate-850 p-2.5 rounded-xl flex items-center justify-between font-bold">
+                            <span className="text-gray-500">سلسلة الباقات:</span>
+                            <span className="text-gray-200 font-extrabold select-all">{item.channels}</span>
+                          </div>
 
-
-    <!-- COMPLETE LOGIC ENGINE -->
-    <script>
-        // Default initial structures
-        const initialStoreSettings = {
-            name: "IQTV 4K",
-            logo: "https://images.unsplash.com/photo-1594909122845-11baa439b7bf?q=80&w=200&auto=format&fit=crop",
-            telegramLink: "https://t.me/IQTV4K",
-            whatsappNumber: "9647740393776",
-            footerText: "الموزع المعتمد لجميع السيرفرات الأصلية وتطبيقات IPTV وأجهزة الستلايت المتطورة في العراق. نضمن لك بثاً ثابتاً وتجربة 4K حقيقية."
-        };
-
-        const initialStoreItems = [
-            {
-                id: "best-4k",
-                title: "BEST 4K",
-                category: "apps",
-                image: "https://images.unsplash.com/photo-1542282088-fe8426682b8f?q=80&w=600&auto=format&fit=crop",
-                channels: "12,000+ قناة وباقة رياضية وسينمائية مذهلة",
-                promo: "🚀 السيرفر رقم واحد في العراق: ثبات تام بدون تكسير وبدقة Ultra HD حقيقية لكل البطولات والمسابقات الرياضية العالمية!",
-                requirements: "إنترنت مستقر بسرعة لا تقل عن 8 ميجابت/ثانية",
-                status: "active",
-                description: "يعتبر تطبيق BEST 4K الاختيار الأول والأنسب لجميع محبي الرياضة والسينما في العراق. يحتوي على باقات VIP المحدثة على مدار الساعة مع مكتبة ضخمة ومتنوعة للغاية من الأفلام والمسلسلات الحصرية بجودة ريمكس 4K وترجمة عربية احترافية سريعة.",
-                disclaimer: "جميع اشتراكاتنا أصلية 100% ونحن نضمن لك كوداً رسمياً غير مشترك ومخصص لجهازك فقط، يرجى فحص جودة اتصالك بالإنترنت والابتعاد عن أوقات ضغط الشبكات.",
-                prices: { "1m": "7000", "3m": "12000", "6m": "22000", "1y": "38000" }
-            },
-            {
-                id: "vip-max",
-                title: "VIP MAX IPTV",
-                category: "apps",
-                image: "https://images.unsplash.com/photo-1574375927938-d5a98e8edd86?q=80&w=600&auto=format&fit=crop",
-                channels: "10,000+ قناة مع مكتبة أفلام مستمرة التحديث",
-                promo: "✨ الحل العبقري للإنترنت الضعيف! يدعم تقنيات الضغط الحديثة H.265 لضمان بث متواصل دون أي توقف.",
-                requirements: "يعمل بجودة عالية حتى مع سرعة إنترنت 4 ميجابت/ثانية",
-                status: "active",
-                description: "سيرفر VIP MAX هو السيرفر الأكثر طلباً لأصحاب خطوط الإنترنت المتوسطة والضعيفة داخل العراق. يوفر نقاوة صور عالية الجودة وثبات فريد يضاهي البث الفضائي التقليدي لجميع القنوات الرياضية والترفيهية الشهيرة.",
-                disclaimer: "الاشتراك يعمل على جهاز واحد فقط في نفس الوقت. الكود يتم إرساله فورياً بعد تأكيد استلام الطلب والدفع.",
-                prices: { "1m": "6000", "3m": "10000", "6m": "18000", "1y": "32000" }
-            },
-            {
-                id: "shark",
-                title: "SHARK IPTV",
-                category: "apps",
-                image: "https://images.unsplash.com/photo-1536440136628-849c177e76a1?q=80&w=600&auto=format&fit=crop",
-                channels: "15,000+ قناة وبث مباشر بدقة UHD/FHD",
-                promo: "🦈 سيرفر القرش الذكي: المحتوى الأكبر على الإطلاق لعشاق الأفلام والمسلسلات العربية والأجنبية والتركية المدبلجة والمترجمة.",
-                requirements: "إنترنت مستقر بسرعة 6 ميجابت/ثانية على الأقل",
-                status: "active",
-                description: "تطبيق SHARK IPTV يقدم لك تجربة ترفيهية متكاملة غير مسبوقة بفضل خوادمه الأوروبية فائقة السرعة والقوة. يتميز بواجهة استخدام تفاعلية سهلة جداً تجعل التصفح والتنقل بين آلاف القنوات الرياضية وباقات نتفلكس والسينما متعة غامرة.",
-                disclaimer: "متوافق مع جميع الهواتف الذكية والشاشات والريسيفرات التي تدعم تطبيقات تشغل IPTV.",
-                prices: { "1m": "8000", "3m": "14000", "6m": "24000", "1y": "42000" }
-            },
-            {
-                id: "family-4k",
-                title: "FAMILY 4K",
-                category: "apps",
-                image: "https://images.unsplash.com/photo-1511512578047-dfb367046420?q=80&w=600&auto=format&fit=crop",
-                channels: "8,500+ قناة عائلية آمنة وممتازة",
-                promo: "👨‍👩‍👧‍👦 السيرفر العائلي النظيف: خالٍ تماماً من القنوات غير اللائقة ومخصص لرفاهية ممتازة وتثقيفية لجميع أفراد الأسرة.",
-                requirements: "إنترنت مستقر بسرعة تزيد عن 5 ميجابت/ثانية",
-                status: "active",
-                description: "تم تصميم سيرفر FAMILY 4K ليركز على المحتوى التعليمي والكوميدي والوثائقي بالإضافة إلى قنوات الأطفال الشهيرة والمسلسلات العائلية والكرتون بشتى اللغات مع خيار التصفح الآمن والمبسط للأطفال والكبار.",
-                disclaimer: " can block parents codes, features control parameters.",
-                prices: { "1m": "6500", "3m": "11000", "6m": "19000", "1y": "34000" }
-            },
-            {
-                id: "xiaomi-box",
-                title: "Xiaomi TV Box S 2nd Gen",
-                category: "tvbox",
-                image: "https://images.unsplash.com/photo-1585647347483-22b66260dfff?q=80&w=600&auto=format&fit=crop",
-                channels: "يدعم جميع تطبيقات الـ IPTV الرسمية والعالمية",
-                promo: "📺 حوّل شاشتك العادية إلى شاشة ذكية خارقة بنظام Android TV 11 ودقة 4K Ultra HD مع معالج رباعي النواة قوي.",
-                requirements: "يتصل عبر الواي فاي وتردد 5G أو سلك النت",
-                status: "active",
-                description: "جهاز شاومي تي في بوكس الأصلي الجيل الثاني يمنحك سرعة استجابة مذهلة في تشغيل جميع اشتراكات IPTV. يدعم تقنية الصوت المحيطي Dolby Atmos لتوفير مشاهدة سلسة للمباريات والأفلام بجانب ميزة البحث الصوتي بمساعد جوجل.",
-                disclaimer: "الجهاز أصلي مع حماية كاملة وضمان تشغيلي رسمي لمدة عام كامل من الوكيل التجاري.",
-                prices: { "1m": "75000", "3m": "", "6m": "", "1y": "" }
-            },
-            {
-                id: "tiger-rx",
-                title: "جهاز ريسيفر Tiger T800 Ultra 4K",
-                category: "receivers",
-                image: "https://images.unsplash.com/photo-1601987177651-8edfe6c20009?q=80&w=600&auto=format&fit=crop",
-                channels: "بث فضائي متطور + باقات IPTV مجانية مدمجة",
-                promo: "📡 ريسيفر تايجر الأقوى في العراق: يأتي مع سيرفر Forever شيرنج لمدة 15 شهر لفتح القنوات المشفرة على الأقمار الاصطناعية مجاناً!",
-                requirements: "صحن ستلايت بالإضافة لتوصيل نت لتفعيل الشيرنج والـ IPTV",
-                status: "active",
-                description: "جهاز ريسيفر Tiger T800 Ultra يدعم دقة العرض الفائقة 4K حقيقي بتردد 60 إطار في الثانية ومزود لواي فاي حساس جداً، ويدعم بشكل كامل أنظمة الصوت المتعددة وجميع تطبيقات البث الحديثة وسيرفرات IPTV المفصلة.",
-                disclaimer: "يأتي بضمان رسمي 12 شهراً، وتتوفر أحدث سوفتويرات وتحديثات السيرفرات الرسمية دوماً مجاناً.",
-                prices: { "1m": "95000", "3m": "", "6m": "", "1y": "" }
-            }
-        ];
-
-        // Storage load with default mock sync
-        let storeSettings = JSON.parse(localStorage.getItem("iqtv_store_settings")) || initialStoreSettings;
-        let items = JSON.parse(localStorage.getItem("iqtv_store_items")) || initialStoreItems;
-        
-        // Active state registers
-        let currentTabState = "store";
-        let currentCategoryFilter = "all";
-        let currentSearchQuery = "";
-        let selectedItemRef = null;
-        let isAdminAuthenticated = false;
-
-        // Visual Notifications
-        function showToast(message) {
-            const toast = document.getElementById("toast");
-            const toastMsg = document.getElementById("toast-message");
-            toastMsg.innerText = message;
-            toast.className = toast.className.replace("translate-y-20 opacity-0 pointer-events-none", "translate-y-0 opacity-100");
-            setTimeout(() => {
-                toast.className = toast.className.replace("translate-y-0 opacity-100", "translate-y-20 opacity-0 pointer-events-none");
-            }, 3000);
-        }
-
-        // Netlify identity management setup
-        function initNetlifyIdentity() {
-            if (window.netlifyIdentity) {
-                const syncUser = (user) => {
-                    if (user) {
-                        if (user.email === "ha8680878@gmail.com") {
-                            isAdminAuthenticated = true;
-                            document.getElementById("admin-lock-screen").classList.add("hidden");
-                            document.getElementById("admin-actual-view").classList.remove("hidden");
-                            document.getElementById("admin-btn-text").innerText = "لوحة التحكم (نشط)";
-                            document.getElementById("admin-trigger-btn").className = "flex items-center gap-2 bg-blue-600 hover:bg-blue-500 px-3 md:px-4 py-2 rounded-xl text-xs font-bold text-white border border-blue-500 shadow-lg shadow-blue-500/25";
-                        } else {
-                            isAdminAuthenticated = false;
-                            document.getElementById("admin-actual-view").classList.add("hidden");
-                            document.getElementById("admin-lock-screen").classList.remove("hidden");
-                            document.getElementById("admin-btn-text").innerText = "تسجيل المسؤول";
-                            document.getElementById("admin-trigger-btn").className = "flex items-center gap-2 bg-slate-900 hover:bg-slate-850 px-3 md:px-4 py-2 rounded-xl text-xs font-bold transition duration-250 border border-slate-800 hover:text-white";
-                            showToast(`عذراً! الحساب (${user.email || ""}) غير مصرح له.`);
-                            setTimeout(() => {
-                                window.netlifyIdentity.logout();
-                            }, 1500);
-                        }
-                    } else {
-                        isAdminAuthenticated = false;
-                        document.getElementById("admin-actual-view").classList.add("hidden");
-                        document.getElementById("admin-lock-screen").classList.remove("hidden");
-                        document.getElementById("admin-btn-text").innerText = "تسجيل المسؤول";
-                        document.getElementById("admin-trigger-btn").className = "flex items-center gap-2 bg-slate-900 hover:bg-slate-850 px-3 md:px-4 py-2 rounded-xl text-xs font-bold transition duration-250 border border-slate-800 hover:text-white";
-                    }
-                    calculateStats();
-                    renderSettingsFields();
-                };
-
-                window.netlifyIdentity.on("init", (user) => {
-                    syncUser(user);
-                    if (user && user.email === "ha8680878@gmail.com" && currentTabState === "admin") {
-                        switchTab("admin");
-                    }
-                });
-
-                window.netlifyIdentity.on("login", (user) => {
-                    if (user && user.email === "ha8680878@gmail.com") {
-                        syncUser(user);
-                        switchTab("admin");
-                        showToast("مرحباً بك مجدداً! تم تسجيل الدخول الآمن بنجاح.");
-                    } else {
-                        showToast(`عذراً! الحساب (${user?.email || ""}) غير مصرح له كمسؤول.`);
-                        window.netlifyIdentity.logout();
-                    }
-                });
-
-                window.netlifyIdentity.on("logout", () => {
-                    syncUser(null);
-                    switchTab("store");
-                    showToast("تم تسجيل خروجك بنجاح من النظام الآمن.");
-                });
-            }
-        }
-
-        function openNetlifyLogin() {
-            if (window.netlifyIdentity) {
-                if (isAdminAuthenticated && currentTabState !== "admin") {
-                    switchTab("admin");
-                } else {
-                    window.netlifyIdentity.open("login");
-                }
-            } else {
-                showToast("أداة تسجيل الدخول لم تكتمل في التحميل.");
-            }
-        }
-
-        function netlifyLogout() {
-            if (window.netlifyIdentity) {
-                window.netlifyIdentity.logout();
-            } else {
-                isAdminAuthenticated = false;
-                switchTab("store");
-                showToast("تم الخروج وإغلاق الجلسة الآمنة للوحة التحكم.");
-            }
-        }
-
-        // Tab and Switch systems
-        function switchTab(tab) {
-            currentTabState = tab;
-            const storeSection = document.getElementById("main-store-section");
-            const adminSection = document.getElementById("admin-panel-section");
-            
-            if (tab === "admin") {
-                storeSection.classList.add("hidden");
-                adminSection.classList.remove("hidden");
-                renderAdminTable();
-                calculateStats();
-            } else {
-                adminSection.classList.add("hidden");
-                storeSection.classList.remove("hidden");
-                renderStoreCatalog();
-            }
-        }
-
-        // Category Filter
-        function filterCategory(cat) {
-            currentCategoryFilter = cat;
-            const pills = document.querySelectorAll(".cat-pill");
-            pills.forEach(pill => {
-                pill.className = "cat-pill px-4 py-2 text-xs font-bold rounded-xl whitespace-nowrap transition duration-200 cursor-pointer border bg-slate-900 border-slate-800/80 text-gray-400 hover:text-white";
-            });
-
-            const activePill = document.getElementById("filter-" + cat);
-            if (activePill) {
-                activePill.className = "cat-pill px-4 py-2 text-xs font-bold rounded-xl whitespace-nowrap transition duration-200 cursor-pointer border bg-blue-600 border-blue-500 text-white shadow-lg shadow-blue-500/20";
-            }
-            renderStoreCatalog();
-        }
-
-        function handleSearch() {
-            currentSearchQuery = document.getElementById("search-input").value;
-            renderStoreCatalog();
-        }
-
-        // Render Store Catalog Cards dynamic structure
-        function renderStoreCatalog() {
-            const grid = document.getElementById("catalog-grid");
-            grid.innerHTML = "";
-
-            const filtered = items.filter(item => {
-                if (item.status !== "active") return false;
-                
-                // Categorization
-                let catMatches = true;
-                if (currentCategoryFilter === "apps") catMatches = item.category === "apps";
-                else if (currentCategoryFilter === "devices") catMatches = item.category === "receivers" || item.category === "tvbox";
-                else if (currentCategoryFilter === "receivers") catMatches = item.category === "receivers";
-                else if (currentCategoryFilter === "tvbox") catMatches = item.category === "tvbox";
-
-                // Search filtering query
-                const titleLower = item.title.toLowerCase();
-                const descLower = (item.description || "").toLowerCase();
-                const queryLower = currentSearchQuery.trim().toLowerCase();
-                const searchMatches = queryLower === "" || titleLower.includes(queryLower) || descLower.includes(queryLower);
-
-                return catMatches && searchMatches;
-            });
-
-            if (filtered.length === 0) {
-                grid.innerHTML = `
-                    <div class="col-span-full text-center bg-slate-900/50 rounded-2xl border border-slate-800 p-12 max-w-xl mx-auto my-12">
-                        <i class="fas fa-exclamation-circle text-gray-605 text-4xl mb-4"></i>
-                        <h3 class="text-base font-extrabold text-white mb-2">عذراً، لم نعثر على أي نتائج مطابقة!</h3>
-                        <p class="text-xs text-gray-400 leading-relaxed max-w-sm mx-auto">
-                            الرجاء التحقق من المدخلات وسوف نوفر العروض المناسبة والبدائل فوراً.
-                        </p>
-                    </div>
-                `;
-                return;
-            }
-
-            // Sync Header values
-            document.getElementById("store-name").innerText = storeSettings.name;
-            document.getElementById("store-logo").src = storeSettings.logo;
-            document.getElementById("telegram-link-btn").href = storeSettings.telegramLink;
-            document.getElementById("hero-whatsapp-btn").href = "https://wa.me/" + storeSettings.whatsappNumber;
-
-            // Render cards
-            filtered.forEach(item => {
-                const pricesArr = Object.values(item.prices).filter(p => p !== "").map(Number);
-                const lowest = pricesArr.length > 0 ? Math.min(...pricesArr) : null;
-                const priceText = lowest ? `${lowest.toLocaleString()} دينار` : "اتصال مباشر";
-
-                let catLabel = "تطبيق IPTV";
-                if (item.category === "receivers") catLabel = "ريسيفر فضائي";
-                else if (item.category === "tvbox") catLabel = "جهاز TV Box";
-
-                grid.innerHTML += `
-                    <div class="bg-slate-900 border border-slate-800 rounded-3xl overflow-hidden shadow-xl hover:border-blue-500/30 transition duration-300 flex flex-col justify-between group relative">
-                        <div class="absolute inset-0 border border-transparent rounded-3xl group-hover:border-blue-500/20 pointer-events-none transition duration-300"></div>
-                        <div class="relative h-48 overflow-hidden bg-[#0e1424]">
-                            <img src="${item.image}" alt="${item.title}" class="w-full h-full object-cover group-hover:scale-105 transition duration-500">
-                            <div class="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/10 to-transparent"></div>
-                            <span class="absolute bottom-3 right-3 bg-slate-950/80 backdrop-blur-md border border-slate-800 text-[10px] font-extrabold text-blue-400 px-2.5 py-1 rounded-lg">
-                                <i class="fas fa-desktop text-xs"></i> ${catLabel}
-                            </span>
-                        </div>
-                        <div class="p-5 flex-grow flex flex-col justify-between">
+                          <div className="flex items-center justify-between border-t border-slate-850/80 pt-4">
                             <div>
-                                <h3 class="text-base font-extrabold text-white group-hover:text-blue-400 transition mb-2">${item.title}</h3>
-                                <p class="text-[11.5px] text-gray-400 leading-relaxed line-clamp-2 mb-4">${item.description}</p>
+                              <span className="block text-[9px] text-gray-500 font-bold">يبدأ السعر من</span>
+                              <span className="text-xs md:text-sm font-black text-emerald-400 font-mono tracking-wide">
+                                {formattedLowPrice}
+                              </span>
                             </div>
-                            <div>
-                                <div class="text-[10px] text-gray-400 bg-slate-950/40 border border-slate-800/40 rounded-xl px-2.5 py-1.5 mb-4 flex items-center justify-between">
-                                    <span class="text-gray-500 font-medium">سلسلة المحتوى:</span>
-                                    <span class="font-extrabold text-slate-100">${item.channels || 'بث متكامل'}</span>
-                                </div>
-                                <div class="flex items-center justify-between border-t border-slate-808/80 pt-4 mt-2">
-                                    <div>
-                                        <span class="block text-[9px] text-gray-500 font-bold">يبدأ السعر من</span>
-                                        <span class="text-sm font-black text-emerald-400">${priceText}</span>
-                                    </div>
-                                    <button onclick="openDetailsModal('${item.id}')" class="bg-slate-950 text-white font-extrabold text-[11px] px-3.5 py-2.5 rounded-xl border border-slate-808/80 hover:bg-blue-600 hover:border-transparent hover:text-white transition duration-200">
-                                        التفاصيل والباقات <i class="fas fa-arrow-left text-[10px] mr-1"></i>
-                                    </button>
-                                </div>
-                            </div>
+
+                            <button
+                              onClick={() => {
+                                setSelectedItem(item);
+                                setIsDetailsOpen(true);
+                              }}
+                              className="bg-slate-950 text-slate-200 font-extrabold text-[11px] px-3.5 py-2.5 rounded-xl border border-slate-850 hover:bg-blue-600 hover:border-transparent hover:text-white transition duration-250 cursor-pointer"
+                            >
+                              <span>عرض التفاصيل والباقات</span>
+                            </button>
+                          </div>
                         </div>
+
+                      </div>
                     </div>
-                `;
-            });
-        }
+                  );
+                })}
 
-        // Details view modal setup
-        function openDetailsModal(id) {
-            const item = items.find(i => i.id === id);
-            if (!item) return;
+                {filteredCatalogItems.length === 0 && (
+                  <div className="col-span-full text-center bg-slate-900/40 rounded-3xl border border-slate-850 p-12 max-w-lg mx-auto my-12 space-y-4">
+                    <Tv className="w-10 h-10 text-gray-600 mx-auto" />
+                    <h3 className="text-base font-extrabold text-white">لم يتم العثور على سيرفرات مطابقة!</h3>
+                    <p className="text-xs text-gray-400 leading-relaxed font-medium">
+                      الرجاء إدخال كلمات بحث صحيحة أو اختيار فئة تصفح بديلة للبحث عن الباقات المتاحة بالمتجر.
+                    </p>
+                  </div>
+                )}
+              </div>
 
-            selectedItemRef = item;
-            document.getElementById("modal-item-image").src = item.image;
-            document.getElementById("modal-item-title").innerText = item.title;
-            document.getElementById("modal-item-promo").innerText = item.promo || "اشتراكات بأسعار معقولة وثبات رائع لمباريات الصيف.";
-            document.getElementById("modal-item-channels").innerText = item.channels || "غير متوفر";
-            document.getElementById("modal-item-requirements").innerText = item.requirements || "اتصال بالإنترنت";
-            document.getElementById("modal-item-description").innerText = item.description || "";
-            document.getElementById("modal-item-disclaimer").innerText = item.disclaimer || "جميع اشتراكاتنا أصلية 100% ونحن نضمن لك كوداً رسمياً غير مشترك ومخصص لجهازك فقط.";
+            </div>
 
-            let catLabel = "IPTV APP";
-            if (item.category === "receivers") catLabel = "ريسيفر";
-            else if (item.category === "tvbox") catLabel = "TV BOX";
-            document.getElementById("modal-item-badge").innerText = catLabel;
+          </div>
+        )}
 
-            const pricingList = document.getElementById("modal-prices-list");
-            pricingList.innerHTML = "";
+      </main>
 
-            const labelMapping = { "1m": "باقة شهر واحد", "3m": "باقة 3 أشهر", "6m": "باقة 6 أشهر", "1y": "باقة سنة كاملة" };
-            Object.keys(item.prices).forEach(key => {
-                const val = item.prices[key];
-                if (val) {
-                    pricingList.innerHTML += `
-                        <div class="flex items-center justify-between text-xs bg-slate-900 p-2.5 rounded-lg border border-slate-800">
-                            <span class="text-gray-300 font-semibold">${labelMapping[key]}</span>
-                            <span class="text-blue-400 font-black">${Number(val).toLocaleString()} دينار عراقي</span>
-                        </div>
-                    `;
-                }
-            });
-
-            document.getElementById("details-modal").classList.remove("hidden");
-        }
-
-        function closeDetailsModal() {
-            document.getElementById("details-modal").classList.add("hidden");
-        }
-
-        // Try free trial WhatsApp trigger
-        function requestFreeTrial() {
-            if (!selectedItemRef) return;
-            const msg = `مرحباً متجر *${storeSettings.name}*، أود طلب تجربة مجانية فورية لتطبيق وسيرفر: (${selectedItemRef.title})`;
-            window.open(`https://wa.me/${storeSettings.whatsappNumber}?text=${encodeURIComponent(msg)}`, "_blank");
-        }
-
-        // Checkout Trigger
-        function openCheckoutForm() {
-            if (!selectedItemRef) return;
-            closeDetailsModal();
-
-            const selectOptions = document.getElementById("order-duration");
-            selectOptions.innerHTML = "";
-
-            const labelMapping = { "1m": "شهر واحد", "3m": "3 أشهر", "6m": "6 أشهر", "1y": "سنة كاملة" };
-            Object.keys(selectedItemRef.prices).forEach(key => {
-                const val = selectedItemRef.prices[key];
-                if (val) {
-                    selectOptions.innerHTML += `
-                        <option value="${labelMapping[key]} - بسعر ${val} دينار">${labelMapping[key]} (${Number(val).toLocaleString()} دينار)</option>
-                    `;
-                }
-            });
-
-            document.getElementById("checkout-modal").classList.remove("hidden");
-        }
-
-        function closeCheckoutModal() {
-            document.getElementById("checkout-modal").classList.add("hidden");
-        }
-
-        function submitCheckoutOrder(e) {
-            e.preventDefault();
-            if (!selectedItemRef) return;
-
-            const name = document.getElementById("order-name").value;
-            const phone = document.getElementById("order-phone").value;
-            const device = document.getElementById("order-device").value;
-            const duration = document.getElementById("order-duration").value;
-
-            let message = `🔥 *طلب اشتراك جديد - متجر ${storeSettings.name}* 🔥\n\n`;
-            message += `👤 *اسم الزبون الكريم:* ${name}\n`;
-            message += `📞 *رقم الهاتف في العراق:* ${phone}\n`;
-            message += `🖥️ *جهاز التشغيل:* ${device}\n`;
-            message += `🚀 *السيرفر المطلوب:* ${selectedItemRef.title}\n`;
-            message += `⏳ *الباقة المحددة:* ${duration}\n\n`;
-            message += `_الرجاء إرسال كود التفعيل النشط مع تطبيق الـ APK المثالي للتطبيق المذكور فوراً_`;
-
-            window.open(`https://wa.me/${storeSettings.whatsappNumber}?text=${encodeURIComponent(message)}`, "_blank");
-            closeCheckoutModal();
-            showToast("تم تحويل تفاصيل اشتراكك لواتساب التفعيل بنجاح!");
-        }
+      {/* Footer Hub */}
+      <footer id="footer-section" className="bg-[#060911] border-t border-slate-850/80 mt-20 px-4 py-12 text-sm text-gray-400 text-right">
+        <div className="container mx-auto max-w-7xl grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
+          <div className="space-y-4">
+            <h4 className="text-white font-black text-base">{settings.name} — العراق</h4>
+            <p className="text-xs leading-relaxed text-gray-400 font-medium">
+              {settings.footerText}
+            </p>
+          </div>
+          <div className="space-y-4">
+            <h4 className="text-white font-black text-base">روابط سريعة ومباشرة</h4>
+            <div className="grid grid-cols-2 gap-3 text-xs font-bold">
+              <a 
+                href={settings.telegramLink} 
+                target="_blank" 
+                rel="noopener noreferrer" 
+                className="hover:text-white transition text-blue-400 flex items-center gap-1.5"
+              >
+                <span>قناة التليجرام العامة</span>
+              </a>
+              <a 
+                href={`https://wa.me/${settings.whatsappNumber}`} 
+                target="_blank" 
+                rel="noopener noreferrer" 
+                className="hover:text-white transition text-emerald-400 flex items-center gap-1.5"
+              >
+                <span>الدعم الفني المباشر</span>
+              </a>
+            </div>
+          </div>
+          <div className="space-y-2">
+            <h4 className="text-white font-black text-base">منطقة الحماية والقوانين</h4>
+            <p className="text-[10px] text-gray-500 leading-relaxed font-medium">
+              نحن نعمل موزعون رسميون لتطبيقات البث المشفرة. تنشيط الاكواد والسرعات تتأثر دائمًا بظروف خدمات الاتصالات والانترنيت المحلية في العراق.
+            </p>
+          </div>
+        </div>
+        <div className="container mx-auto max-w-7xl border-t border-slate-900 pt-6 text-center text-xs text-gray-500 flex flex-col md:flex-row items-center justify-between gap-4 font-bold">
+          <p>© 2026 جميع الحقوق محفوظة لوكلاء IPTV لمتجر {settings.name} في العراق.</p>
+          <div className="flex items-center gap-4 text-sm font-semibold text-gray-400">
+            <span>نظام 2FA معتمد للبريد ha8680878@gmail.com</span>
+          </div>
+        </div>
+      </footer>
 
 
-        // ADMIN FUNCTIONAL SUITES (CRUD, STATE)
-        function calculateStats() {
-            const activeCount = items.filter(i => i.status === "active").length;
-            const hiddenCount = items.filter(i => i.status === "hidden").length;
+      {/* DETAILS MODAL OVERLAY */}
+      <DetailsModal 
+        item={selectedItem}
+        settings={settings}
+        isOpen={isDetailsOpen}
+        onClose={() => setIsDetailsOpen(false)}
+        onOpenCheckout={() => {
+          setIsDetailsOpen(false);
+          setIsCheckoutOpen(true);
+        }}
+      />
 
-            document.getElementById("stat-active-count").innerText = activeCount;
-            document.getElementById("stat-hidden-count").innerText = hiddenCount;
-            document.getElementById("stat-total-count").innerText = `${items.length} عنصر`;
-        }
+      {/* CHECKOUT MODAL OVERLAY */}
+      <CheckoutModal 
+        item={selectedItem}
+        settings={settings}
+        isOpen={isCheckoutOpen}
+        onClose={() => setIsCheckoutOpen(false)}
+        onOrderSuccess={(msg) => {
+          addLog('info', `إرسال استمارة حجز وتفعيل للسيرفر: (${selectedItem?.title}) بنجاح`);
+          showToast(msg);
+        }}
+      />
 
-        function renderSettingsFields() {
-            document.getElementById("admin-input-store-name").value = storeSettings.name;
-            document.getElementById("admin-input-whatsapp").value = storeSettings.whatsappNumber;
-            document.getElementById("admin-input-telegram").value = storeSettings.telegramLink;
-            document.getElementById("admin-input-logo").value = storeSettings.logo;
-            document.getElementById("admin-input-footer").value = storeSettings.footerText;
+      {/* SECURE GOOGLE LOGIN + 2FA MODAL */}
+      <SecurityAuthModal 
+        isOpen={isAuthOpen}
+        onClose={() => setIsAuthOpen(false)}
+        googleUserEmail="ha8680878@gmail.com"
+        onAuthSuccess={handleAuthSuccess}
+      />
 
-            // Header labels
-            document.getElementById("store-name").innerText = storeSettings.name;
-            document.getElementById("footer-store-name").innerText = storeSettings.name;
-            document.getElementById("footer-description-text").innerText = storeSettings.footerText;
-            document.getElementById("footer-copyright").innerText = storeSettings.name;
-            document.getElementById("footer-telegram").href = storeSettings.telegramLink;
-            document.getElementById("footer-whatsapp").href = "https://wa.me/" + storeSettings.whatsappNumber;
-            document.getElementById("icon-telegram").href = storeSettings.telegramLink;
-            document.getElementById("icon-whatsapp").href = "https://wa.me/" + storeSettings.whatsappNumber;
-        }
-
-        function saveAdminGeneralSettings() {
-            storeSettings.name = document.getElementById("admin-input-store-name").value;
-            storeSettings.whatsappNumber = document.getElementById("admin-input-whatsapp").value;
-            storeSettings.telegramLink = document.getElementById("admin-input-telegram").value;
-            storeSettings.logo = document.getElementById("admin-input-logo").value;
-            storeSettings.footerText = document.getElementById("admin-input-footer").value;
-
-            localStorage.setItem("iqtv_store_settings", JSON.stringify(storeSettings));
-            renderSettingsFields();
-            showToast("تم تحديث الإعدادات العامة للمتجر وحفظها بنجاح!");
-        }
-
-        function renderAdminTable() {
-            const tableRows = document.getElementById("admin-table-rows");
-            tableRows.innerHTML = "";
-
-            items.forEach(item => {
-                const statusBadge = item.status === "active" 
-                    ? `<span class="px-2.5 py-1 rounded-md text-[10px] font-bold bg-green-500/10 text-green-400 border border-green-500/20">نشط</span>`
-                    : `<span class="px-2.5 py-1 rounded-md text-[10px] font-bold bg-amber-500/10 text-amber-400 border border-amber-500/25">مسودة</span>`;
-
-                tableRows.innerHTML += `
-                    <tr class="hover:bg-slate-850/40 transition">
-                        <td class="p-4 flex items-center gap-3">
-                            <img src="${item.image}" alt="" class="w-10 h-10 rounded-xl object-cover border border-slate-850 shadow">
-                            <span class="font-extrabold text-white text-xs">${item.title}</span>
-                        </td>
-                        <td class="p-4 font-semibold text-gray-400 text-[11px]">${item.category}</td>
-                        <td class="p-4 text-slate-205 text-[11px]">${item.channels || '-'}</td>
-                        <td class="p-4">${statusBadge}</td>
-                        <td class="p-4 text-left space-x-2">
-                            <button onclick="handleEditItem('${item.id}')" class="text-blue-400 hover:text-blue-300 text-xs px-2.5 py-1 bg-blue-500/5 hover:bg-blue-500/10 rounded-md border border-blue-500/15">تحرير</button>
-                            <button onclick="handleDeleteItem('${item.id}')" class="text-red-400 hover:text-red-300 text-xs px-2.5 py-1 bg-red-500/5 hover:bg-red-500/10 rounded-md border border-red-500/15">حذف</button>
-                        </td>
-                    </tr>
-                `;
-            });
-        }
-
-        // Form handlers for Add/Edit
-        function handleAddNewItem() {
-            document.getElementById("item-modal-title").innerText = "إضافة سيرفر أو جهاز جديد للمتجر";
-            document.getElementById("edit-item-id").value = "";
-            document.getElementById("item-title").value = "";
-            document.getElementById("item-category").value = "apps";
-            document.getElementById("item-image").value = "https://images.unsplash.com/photo-1461151304267-38535e780c79?q=80&w=600&auto=format&fit=crop";
-            document.getElementById("item-channels").value = "10,000+ قناة وباقة متجددة";
-            document.getElementById("item-promo").value = "🔥 ثبات مطلق ودقة عرض 4K فائقة الجودة بدون تقطيع!";
-            document.getElementById("item-requirements").value = "أفضل أداء مع إنترنت خط مستقر لا يقل عن 8 ميجابت";
-            document.getElementById("item-status").value = "active";
-            document.getElementById("item-description").value = "";
-            document.getElementById("item-disclaimer").value = "جميع اشتراكاتنا أصلية وتعمل مع جهاز واحد فقط بالتفعيل.";
-            
-            document.getElementById("price-1m").value = "7000";
-            document.getElementById("price-3m").value = "12000";
-            document.getElementById("price-6m").value = "20000";
-            document.getElementById("price-1y").value = "35000";
-
-            document.getElementById("item-modal").classList.remove("hidden");
-        }
-
-        function handleEditItem(id) {
-            const item = items.find(i => i.id === id);
-            if (!item) return;
-
-            document.getElementById("item-modal-title").innerText = "تعديل محتوى الباقة الحالية";
-            document.getElementById("edit-item-id").value = item.id;
-            document.getElementById("item-title").value = item.title;
-            document.getElementById("item-category").value = item.category;
-            document.getElementById("item-image").value = item.image;
-            document.getElementById("item-channels").value = item.channels;
-            document.getElementById("item-promo").value = item.promo;
-            document.getElementById("item-requirements").value = item.requirements;
-            document.getElementById("item-status").value = item.status;
-            document.getElementById("item-description").value = item.description;
-            document.getElementById("item-disclaimer").value = item.disclaimer;
-
-            document.getElementById("price-1m").value = item.prices["1m"] || "";
-            document.getElementById("price-3m").value = item.prices["3m"] || "";
-            document.getElementById("price-6m").value = item.prices["6m"] || "";
-            document.getElementById("price-1y").value = item.prices["1y"] || "";
-
-            document.getElementById("item-modal").classList.remove("hidden");
-        }
-
-        function closeItemModal() {
-            document.getElementById("item-modal").classList.add("hidden");
-        }
-
-        function saveItemFormSubmit(e) {
-            e.preventDefault();
-
-            const id = document.getElementById("edit-item-id").value;
-            const itemObj = {
-                id: id || "item_" + Date.now(),
-                title: document.getElementById("item-title").value,
-                category: document.getElementById("item-category").value,
-                image: document.getElementById("item-image").value,
-                channels: document.getElementById("item-channels").value,
-                promo: document.getElementById("item-promo").value,
-                requirements: document.getElementById("item-requirements").value,
-                status: document.getElementById("item-status").value,
-                description: document.getElementById("item-description").value,
-                disclaimer: document.getElementById("item-disclaimer").value,
-                prices: {
-                    "1m": document.getElementById("price-1m").value,
-                    "3m": document.getElementById("price-3m").value,
-                    "6m": document.getElementById("price-6m").value,
-                    "1y": document.getElementById("price-1y").value,
-                }
-            };
-
-            if (id) {
-                const idx = items.findIndex(i => i.id === id);
-                if (idx !== -1) items[idx] = itemObj;
-                showToast("تم تحديث السيرفر/الجهاز بنجاح!");
-            } else {
-                items.push(itemObj);
-                showToast("تم إضافة العنصر الجديد بنجاح للمتجر!");
-            }
-
-            localStorage.setItem("iqtv_store_items", JSON.stringify(items));
-            closeItemModal();
-            renderAdminTable();
-            calculateStats();
-            renderStoreCatalog();
-        }
-
-        function handleDeleteItem(id) {
-            const item = items.find(i => i.id === id);
-            if (!item) return;
-
-            if (confirm(`هل أنت متأكد من حذف وإزالة: (${item.title}) نهائياً من المتجر؟`)) {
-                items = items.filter(i => i.id !== id);
-                localStorage.setItem("iqtv_store_items", JSON.stringify(items));
-                renderAdminTable();
-                calculateStats();
-                renderStoreCatalog();
-                showToast("تم إزالة العنصر من قاعدة البيانات بنجاح.");
-            }
-        }
-
-        function resetToFactoryDefaults() {
-            if (confirm("هل تعيد تعيين المتجر وقاعدة بياناته للقيم والبنود الافتراضية؟ سيتم إزالة جميع تعديلاتك.")) {
-                items = initialStoreItems;
-                storeSettings = initialStoreSettings;
-                localStorage.setItem("iqtv_store_items", JSON.stringify(items));
-                localStorage.setItem("iqtv_store_settings", JSON.stringify(storeSettings));
-                renderAdminTable();
-                calculateStats();
-                renderSettingsFields();
-                renderStoreCatalog();
-                showToast("تم إعادة تهيئة المتجر للمصنع بنجاح.");
-            }
-        }
-
-
-        // JSON DATA (IMPORT/EXPORT)
-        function exportJsonDatabase() {
-            const exp = { storeSettings, items };
-            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(exp, null, 2));
-            const downloadAnchor = document.createElement("a");
-            downloadAnchor.setAttribute("href", dataStr);
-            downloadAnchor.setAttribute("download", `IQTV_4K_Database_${new Date().toISOString().split('T')[0]}.json`);
-            document.body.appendChild(downloadAnchor);
-            downloadAnchor.click();
-            downloadAnchor.remove();
-            showToast("تم تصدير نسخة احتياطية من متجرك على جهازك!");
-        }
-
-        function importJsonDatabase(e) {
-            const file = e.target.files?.[0];
-            if (!file) return;
-
-            const reader = new FileReader();
-            reader.onload = (event) => {
-                try {
-                    const imported = JSON.parse(event.target.result);
-                    if (imported.items && Array.isArray(imported.items)) {
-                        items = imported.items;
-                        if (imported.storeSettings) {
-                            storeSettings = imported.storeSettings;
-                        }
-                        localStorage.setItem("iqtv_store_items", JSON.stringify(items));
-                        localStorage.setItem("iqtv_store_settings", JSON.stringify(storeSettings));
-                        
-                        // Re-sync UI
-                        renderSettingsFields();
-                        renderAdminTable();
-                        calculateStats();
-                        renderStoreCatalog();
-                        showToast("تم استيراد قاعدة البيانات المحدثة وتحديث المتجر بالكامل بنجاح!");
-                    } else {
-                        alert("صيغة الملف غير متطابقة.");
-                    }
-                } catch (err) {
-                    alert("خطأ في قراءة ملف الـ JSON.");
-                }
-            };
-            reader.readAsText(file);
-        }
-
-
-        // Init application
-        window.addEventListener("DOMContentLoaded", () => {
-            initNetlifyIdentity();
-            renderSettingsFields();
-            renderStoreCatalog();
-            
-            // Auto invite redirect check
-            if (window.netlifyIdentity) {
-                window.netlifyIdentity.on("init", user => {
-                    if (!user) {
-                        window.netlifyIdentity.on("login", () => { document.location.href = document.location.href; });
-                    }
-                });
-            }
-        });
-    </script>
-</body>
-</html>
+    </div>
+  );
+}
